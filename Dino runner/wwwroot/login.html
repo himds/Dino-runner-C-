@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dino Runner - 登录</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f7f7f7; }
+    h1 { margin-bottom: 0; }
+    .panel { background: #fff; padding: 12px; margin: 12px 0; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    button { padding: 6px 12px; margin-left: 4px; cursor: pointer; }
+    .nav a { margin-right: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Dino Runner - 登录</h1>
+  <div class="panel nav">
+    <a href="index.html">游戏</a>
+    <a href="achievements.html">成就</a>
+    <a href="shop.html">商城</a>
+  </div>
+
+  <div class="panel">
+    <p>输入用户名创建/登录玩家：</p>
+    <input id="username" placeholder="用户名" />
+    <button onclick="login()">创建 / 登录</button>
+    <p id="status"></p>
+  </div>
+
+  <script>
+    const api = (path, options) =>
+      fetch(path, { headers: { "Content-Type": "application/json" }, ...options })
+        .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)));
+
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      if (!username) return alert('请输入用户名');
+      const status = document.getElementById('status');
+      status.textContent = '处理中...';
+      try {
+        const res = await api('/api/users', { method: 'POST', body: JSON.stringify({ username }) });
+        localStorage.setItem('dino_user', JSON.stringify({ id: res.id, coins: res.coins || 0 }));
+        status.textContent = `登录成功：玩家 #${res.id}（金币 ${res.coins || 0}），即将跳转到游戏页`;
+        setTimeout(() => window.location.href = 'index.html', 800);
+      } catch (e) {
+        if (e?.message?.includes('已存在')) {
+          try {
+            const users = await api('/api/users');
+            const found = users.find(u => u.username === username);
+            if (found) {
+              localStorage.setItem('dino_user', JSON.stringify({ id: found.id, coins: found.coins || 0 }));
+              status.textContent = `欢迎回来：玩家 #${found.id}（金币 ${found.coins || 0}），即将跳转到游戏页`;
+              setTimeout(() => window.location.href = 'index.html', 800);
+              return;
+            }
+          } catch { }
+        }
+        status.textContent = e.message || '登录失败';
+      }
+    }
+
+    // 如果已经登录，自动显示信息
+    (function init() {
+      const stored = localStorage.getItem('dino_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        document.getElementById('status').textContent = `当前已登录：玩家 #${u.id}（金币 ${u.coins || 0}）`;
+      }
+    })();
+  </script>
+</body>
+</html>
+

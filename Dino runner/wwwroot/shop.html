@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dino Runner - 商城</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f7f7f7; }
+    h1 { margin-bottom: 0; }
+    .panel { background: #fff; padding: 12px; margin: 12px 0; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .nav a { margin-right: 10px; }
+    .flex { display: flex; gap: 12px; flex-wrap: wrap; }
+    .item { border: 1px solid #ddd; padding: 8px; border-radius: 6px; background: #fafafa; width: 200px; }
+    button { padding: 4px 10px; margin-top: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Dino Runner - 商城</h1>
+  <div class="panel nav">
+    <a href="login.html">登录</a>
+    <a href="index.html">游戏</a>
+    <a href="achievements.html">成就</a>
+    <span id="user-info"></span>
+  </div>
+
+  <div class="panel">
+    <h3>道具列表</h3>
+    <div id="shop" class="flex"></div>
+  </div>
+
+  <script>
+    const api = (path, options) =>
+      fetch(path, { headers: { "Content-Type": "application/json" }, ...options })
+        .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)));
+
+    let userId = null;
+    let coins = 0;
+
+    function initUser() {
+      const stored = localStorage.getItem('dino_user');
+      if (!stored) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const obj = JSON.parse(stored);
+      userId = obj.id;
+      coins = obj.coins || 0;
+      document.getElementById('user-info').textContent = `玩家 #${userId} / 金币 ${coins}`;
+    }
+
+    async function loadShop() {
+      const container = document.getElementById('shop');
+      container.innerHTML = '';
+      const items = await api('/api/shop/items');
+      const owned = await api(`/api/shop/user/${userId}`);
+      const ownedSet = new Set(owned.map(o => o.shopItemId));
+      items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        const btn = document.createElement('button');
+        const has = ownedSet.has(item.id);
+        btn.textContent = has ? '已拥有' : `购买 (${item.price})`;
+        btn.disabled = has;
+        btn.onclick = async () => {
+          try {
+            const res = await api('/api/shop/purchase', { method: 'POST', body: JSON.stringify({ userId, shopItemId: item.id }) });
+            coins = res.coins;
+            localStorage.setItem('dino_user', JSON.stringify({ id: userId, coins }));
+            document.getElementById('user-info').textContent = `玩家 #${userId} / 金币 ${coins}`;
+            await loadShop();
+          } catch (e) {
+            alert(e.message || '购买失败');
+          }
+        };
+        div.innerHTML = `<strong>${item.name}</strong><br/>${item.description || ''}<br/>价格: ${item.price}`;
+        div.appendChild(document.createElement('br'));
+        div.appendChild(btn);
+        container.appendChild(div);
+      });
+    }
+
+    (async function init() {
+      initUser();
+      await loadShop();
+    })();
+  </script>
+</body>
+</html>
+

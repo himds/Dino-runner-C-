@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dino Runner - 成就</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f7f7f7; }
+    h1 { margin-bottom: 0; }
+    .panel { background: #fff; padding: 12px; margin: 12px 0; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .nav a { margin-right: 10px; }
+    .achieved { color: #2c7; }
+    .locked { color: #999; }
+  </style>
+</head>
+<body>
+  <h1>Dino Runner - 成就</h1>
+  <div class="panel nav">
+    <a href="login.html">登录</a>
+    <a href="index.html">游戏</a>
+    <a href="shop.html">商城</a>
+    <span id="user-info"></span>
+  </div>
+
+  <div class="panel">
+    <h3>全部成就</h3>
+    <ul id="achievements"></ul>
+  </div>
+
+  <script>
+    const api = (path, options) =>
+      fetch(path, { headers: { "Content-Type": "application/json" }, ...options })
+        .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)));
+
+    let userId = null;
+    let coins = 0;
+
+    function initUser() {
+      const stored = localStorage.getItem('dino_user');
+      if (!stored) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const obj = JSON.parse(stored);
+      userId = obj.id;
+      coins = obj.coins || 0;
+      document.getElementById('user-info').textContent = `玩家 #${userId} / 金币 ${coins}`;
+    }
+
+    async function loadAchievements() {
+      const all = await api('/api/achievements');
+      const unlocked = await api(`/api/achievements/user/${userId}`);
+      const unlockedSet = new Set(unlocked.map(a => a.achievementId));
+      const list = document.getElementById('achievements');
+      list.innerHTML = '';
+      all.forEach(a => {
+        const li = document.createElement('li');
+        const done = unlockedSet.has(a.id);
+        li.className = done ? 'achieved' : 'locked';
+        li.textContent = `${a.title} (${a.condition}) - ${done ? '已解锁' : '未解锁'}`;
+        list.appendChild(li);
+      });
+    }
+
+    (async function init() {
+      initUser();
+      await loadAchievements();
+    })();
+  </script>
+</body>
+</html>
+
