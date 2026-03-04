@@ -11,6 +11,13 @@ public class User
     [MaxLength(50)]
     public string Username { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 密码哈希（不明文存储密码）
+    /// </summary>
+    [Required]
+    [MaxLength(256)]
+    public string PasswordHash { get; set; } = string.Empty;
+
     public int Coins { get; set; }
 
     public DateTime CreateTime { get; set; } = DateTime.UtcNow;
