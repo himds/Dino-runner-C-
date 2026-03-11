@@ -4,86 +4,159 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dino Runner - 登录</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f7f7f7; }
-    h1 { margin-bottom: 0; }
-    .panel { background: #fff; padding: 12px; margin: 12px 0; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-    button { padding: 6px 12px; margin-left: 4px; cursor: pointer; }
-    .nav a { margin-right: 10px; }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Dino Runner - 登录</h1>
-  <div class="panel nav">
-    <a href="#" onclick="gotoPage('index.html'); return false;">游戏</a>
-    <a href="#" onclick="gotoPage('achievements.html'); return false;">成就</a>
-    <a href="#" onclick="gotoPage('shop.html'); return false;">商城</a>
-  </div>
+  <div class="page">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Dino Runner</h1>
+        <p class="page-subtitle">简单又好玩的 Dino Runner，先登录再开跑。</p>
+      </div>
+    </header>
 
-  <div class="panel">
-    <p>输入用户名和密码：</p>
-    <input id="username" placeholder="用户名" />
-    <input id="password" placeholder="密码" type="password" />
-    <button onclick="register()">注册</button>
-    <button onclick="login()">登录</button>
-    <p id="status"></p>
+    <nav class="panel nav">
+      <div class="nav-links">
+        <a class="nav-link disabled" href="#" onclick="gotoPage('index.html'); return false;">游戏</a>
+        <a class="nav-link disabled" href="#" onclick="gotoPage('achievements.html'); return false;">成就</a>
+        <a class="nav-link disabled" href="#" onclick="gotoPage('shop.html'); return false;">商城</a>
+      </div>
+      <div class="nav-actions">
+        <span class="status-pill" id="user-pill">未登录</span>
+        <button class="button button-secondary" id="logout-btn" onclick="logout()" style="display:none;">退出登录</button>
+      </div>
+    </nav>
+
+    <section class="panel form-card">
+      <div class="form-grid">
+        <div>
+          <h2 class="card-title">登录 / 注册</h2>
+          <p class="page-subtitle">输入用户名和密码，继续你的 Dino 之旅。</p>
+        </div>
+
+        <div id="status" class="alert" role="alert"></div>
+
+        <div>
+          <label class="form-label" for="username">用户名</label>
+          <input class="form-input" id="username" placeholder="至少 3 个字符" />
+          <div class="helper-text">用户名不能全是空格。</div>
+        </div>
+
+        <div>
+          <label class="form-label" for="password">密码</label>
+          <input class="form-input" id="password" placeholder="至少 6 位" type="password" />
+          <div class="helper-text">建议使用字母和数字组合。</div>
+        </div>
+
+        <div class="inline-actions">
+          <button class="button button-secondary" onclick="register()">注册</button>
+          <button class="button button-primary" onclick="login()">登录</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script>
-    const api = (path, options) =>
-      fetch(path, { headers: { "Content-Type": "application/json" }, ...options })
-        .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)));
+    const api = async (path, options) => {
+      const response = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...options
+      });
+      let data = null;
+      try { data = await response.json(); } catch { data = null; }
+      if (!response.ok) throw data || { message: '请求失败' };
+      return data;
+    };
 
-    async function register() {
+    const statusEl = document.getElementById('status');
+    const userPillEl = document.getElementById('user-pill');
+    const logoutBtnEl = document.getElementById('logout-btn');
+
+    function showMessage(message, type = 'info') {
+      statusEl.className = `alert alert-${type} show`;
+      statusEl.textContent = message;
+    }
+    function showError(message) { showMessage(message, 'error'); }
+    function showSuccess(message) { showMessage(message, 'success'); }
+    function showInfo(message) { showMessage(message, 'info'); }
+
+    function validateForm() {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
-      if (!username || !password) return alert('请输入用户名和密码');
-      const status = document.getElementById('status');
-      status.textContent = '处理中...';
+      if (username.length < 3) {
+        showError('用户名至少需要 3 个字符。');
+        return null;
+      }
+      if (password.length < 6) {
+        showError('密码至少需要 6 位。');
+        return null;
+      }
+      return { username, password };
+    }
+
+    async function register() {
+      const payload = validateForm();
+      if (!payload) return;
+      showInfo('正在注册，请稍候...');
       try {
-        const res = await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) });
+        const res = await api('/api/auth/register', { method: 'POST', body: JSON.stringify(payload) });
         localStorage.setItem('dino_user', JSON.stringify({ id: res.id, coins: res.coins || 0 }));
-        status.textContent = `注册成功：玩家 #${res.id}（金币 ${res.coins || 0}），即将跳转到游戏页`;
-        setTimeout(() => window.location.href = 'index.html', 800);
+        updateLoginState();
+        showSuccess(`注册成功：玩家 #${res.id}（金币 ${res.coins || 0}），即将跳转到游戏页。`);
+        setTimeout(() => window.location.href = 'index.html', 900);
       } catch (e) {
-        status.textContent = e.message || '注册失败';
+        showError(e.message || '注册失败，请稍后再试。');
       }
     }
 
     async function login() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      if (!username || !password) return alert('请输入用户名和密码');
-      const status = document.getElementById('status');
-      status.textContent = '处理中...';
+      const payload = validateForm();
+      if (!payload) return;
+      showInfo('正在登录，请稍候...');
       try {
-        const res = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+        const res = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) });
         localStorage.setItem('dino_user', JSON.stringify({ id: res.id, coins: res.coins || 0 }));
-        status.textContent = `登录成功：玩家 #${res.id}（金币 ${res.coins || 0}），即将跳转到游戏页`;
-        setTimeout(() => window.location.href = 'index.html', 800);
+        updateLoginState();
+        showSuccess(`登录成功：玩家 #${res.id}（金币 ${res.coins || 0}），即将跳转到游戏页。`);
+        setTimeout(() => window.location.href = 'index.html', 900);
       } catch (e) {
-        status.textContent = e.message || '登录失败';
+        showError(e.message || '登录失败，请检查用户名和密码。');
       }
     }
 
     function gotoPage(page) {
       const stored = localStorage.getItem('dino_user');
       if (!stored) {
-        alert('请先登录');
+        showInfo('请先登录后再访问游戏、成就和商城。');
         return;
       }
       window.location.href = page;
     }
 
-    // 如果已经登录，自动显示信息
-    (function init() {
+    function logout() {
+      localStorage.removeItem('dino_user');
+      updateLoginState();
+      window.location.href = 'login.html';
+    }
+
+    function updateLoginState() {
       const stored = localStorage.getItem('dino_user');
-      if (stored) {
-        const u = JSON.parse(stored);
-        document.getElementById('status').textContent = `当前已登录：玩家 #${u.id}（金币 ${u.coins || 0}）`;
+      if (!stored) {
+        userPillEl.textContent = '未登录';
+        logoutBtnEl.style.display = 'none';
+        return;
+      }
+      const user = JSON.parse(stored);
+      userPillEl.textContent = `已登录：玩家 #${user.id} / 金币 ${user.coins || 0}`;
+      logoutBtnEl.style.display = 'inline-flex';
+    }
+
+    (function init() {
+      updateLoginState();
+      if (localStorage.getItem('dino_user')) {
+        showInfo('检测到本地登录状态，你也可以直接前往游戏页。');
       }
     })();
   </script>
 </body>
 </html>
-

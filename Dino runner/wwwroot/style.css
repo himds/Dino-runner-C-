@@ -1,0 +1,75 @@
+:root {
+  --color-primary: #27ae60;
+  --color-primary-dark: #1f8a4d;
+  --color-secondary: #f39c12;
+  --color-bg: linear-gradient(180deg, #f6fbf8 0%, #eef4f7 100%);
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8faf9;
+  --color-text: #1f2937;
+  --color-text-soft: #6b7280;
+  --color-border: #d8e2dc;
+  --color-danger: #e74c3c;
+  --color-success: #2ecc71;
+  --shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --container-width: 1120px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--color-text); background: var(--color-bg); }
+body { padding: 24px; }
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; }
+.page { max-width: var(--container-width); margin: 0 auto; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.page-title { margin: 0; font-size: 28px; font-weight: 800; }
+.page-subtitle { margin: 8px 0 0; color: var(--color-text-soft); font-size: 15px; }
+.panel { background: rgba(255,255,255,0.92); border: 1px solid rgba(216, 226, 220, 0.9); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 18px; margin: 16px 0; backdrop-filter: blur(10px); }
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.nav-links, .nav-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nav-link { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid transparent; color: var(--color-text-soft); transition: 0.2s ease; }
+.nav-link:hover, .nav-link.active { color: var(--color-primary-dark); background: rgba(39, 174, 96, 0.1); border-color: rgba(39, 174, 96, 0.18); }
+.nav-link.disabled { opacity: 0.55; }
+.button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 16px; border: 0; border-radius: 12px; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; box-shadow: var(--shadow-sm); }
+.button:hover:not(:disabled) { transform: translateY(-1px); }
+.button:disabled { cursor: not-allowed; opacity: 0.6; }
+.button-primary { background: var(--color-primary); color: white; }
+.button-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+.button-secondary { background: white; color: var(--color-text); border: 1px solid var(--color-border); }
+.button-ghost { background: transparent; color: var(--color-text-soft); border: 1px dashed var(--color-border); box-shadow: none; }
+.form-card { max-width: 420px; margin: 40px auto 0; }
+.form-grid { display: grid; gap: 14px; }
+.form-label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 700; }
+.form-input { width: 100%; min-height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--color-border); background: white; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.form-input:focus { border-color: rgba(39, 174, 96, 0.65); box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.12); }
+.helper-text { font-size: 13px; color: var(--color-text-soft); }
+.alert { display: none; border-radius: 14px; padding: 12px 14px; font-size: 14px; line-height: 1.5; border: 1px solid transparent; }
+.alert.show { display: block; }
+.alert-error { background: rgba(231, 76, 60, 0.12); color: #a93226; border-color: rgba(231, 76, 60, 0.18); }
+.alert-success { background: rgba(46, 204, 113, 0.12); color: #1d8348; border-color: rgba(46, 204, 113, 0.18); }
+.alert-info { background: rgba(243, 156, 18, 0.12); color: #9a6700; border-color: rgba(243, 156, 18, 0.18); }
+.status-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: 999px; background: var(--color-surface-muted); border: 1px solid var(--color-border); color: var(--color-text-soft); font-size: 14px; }
+.hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; }
+.hero-card { min-height: 100%; }
+.canvas-shell { padding: 16px; border-radius: var(--radius-md); background: linear-gradient(180deg, #dff5ff 0%, #f9fcff 68%, #f3ede2 68%, #f3ede2 100%); border: 1px solid rgba(180, 201, 214, 0.8); }
+canvas { width: 100%; max-width: 800px; background: transparent; border-radius: 14px; border: 1px solid rgba(148, 163, 184, 0.35); display: block; margin-top: 10px; }
+.grid { display: grid; gap: 16px; }
+.grid.shop-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.grid.achievement-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.card { border: 1px solid var(--color-border); background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%); border-radius: 16px; padding: 16px; box-shadow: var(--shadow-sm); }
+.card-title { margin: 0 0 8px; font-size: 18px; font-weight: 800; }
+.card-meta { color: var(--color-text-soft); font-size: 14px; }
+.card-price { margin-top: 12px; font-weight: 800; color: var(--color-secondary); }
+.card-actions { margin-top: 14px; }
+.achievement-card.unlocked { border-color: rgba(46, 204, 113, 0.32); background: linear-gradient(180deg, rgba(46,204,113,0.10) 0%, #ffffff 100%); }
+.achievement-card.locked { opacity: 0.82; }
+.stats-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat-box { min-width: 140px; padding: 14px 16px; border-radius: 14px; background: var(--color-surface-muted); border: 1px solid var(--color-border); }
+.stat-label { color: var(--color-text-soft); font-size: 13px; }
+.stat-value { margin-top: 6px; font-size: 22px; font-weight: 800; }
+.inline-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.empty-state { color: var(--color-text-soft); text-align: center; padding: 18px; }
+@media (max-width: 860px) { body { padding: 16px; } .hero { grid-template-columns: 1fr; } .page-header, .nav { flex-direction: column; align-items: stretch; } .nav-links, .nav-actions { justify-content: flex-start; } }
