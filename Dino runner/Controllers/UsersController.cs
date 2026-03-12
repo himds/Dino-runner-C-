@@ -6,10 +6,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dino_runner.Controllers;
 
+/// <summary>
+/// Provides user creation and user profile queries.
+/// Mostly useful for admin/debugging and aggregated player data.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController(AppDbContext context) : ControllerBase
 {
+    /// <summary>
+    /// Create a user record.
+    /// Note: normal project flow uses AuthController/Register instead.
+    /// </summary>
     [HttpPost]
     public async Task<ActionResult<User>> CreateUser([FromBody] CreateUserRequest request)
     {
@@ -31,6 +39,10 @@ public class UsersController(AppDbContext context) : ControllerBase
         return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
     }
 
+    /// <summary>
+    /// Return a single user with summary information:
+    /// owned items, unlocked achievements, score count and best score.
+    /// </summary>
     [HttpGet("{id:int}")]
     public async Task<ActionResult<object>> GetUser(int id)
     {
@@ -55,6 +67,9 @@ public class UsersController(AppDbContext context) : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Return a lightweight list of all users.
+    /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<object>>> ListUsers()
     {

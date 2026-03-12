@@ -8,6 +8,7 @@
 </head>
 <body>
   <div class="page">
+    <!-- Header with project title and player summary -->
     <header class="page-header">
       <div>
         <h1 class="page-title">Dino Runner</h1>
@@ -16,6 +17,7 @@
       <span class="status-pill" id="user-info">Chargement des informations du joueur...</span>
     </header>
 
+    <!-- Shared navigation -->
     <nav class="panel nav">
       <div class="nav-links">
         <a class="nav-link" href="index.html">Jeu</a>
@@ -28,8 +30,10 @@
     </nav>
 
     <section class="panel">
+      <!-- Runtime status banner for success / error info -->
       <div id="shop-status" class="alert"></div>
 
+      <!-- Quick player stats -->
       <div class="stats-row" style="margin-bottom: 16px;">
         <div class="stat-box">
           <div class="stat-label">Pièces actuelles</div>
@@ -48,6 +52,7 @@
   </div>
 
   <script>
+    // Shared helper for calling backend APIs.
     const api = async (path, options) => {
       const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
       const data = await response.json().catch(() => null);
@@ -55,20 +60,24 @@
       return data;
     };
 
+    // Current player summary loaded from localStorage.
     let userId = null;
     let coins = 0;
 
+    // Update status banner.
     function setStatus(message, type = 'info') {
       const el = document.getElementById('shop-status');
       el.className = `alert alert-${type} show`;
       el.textContent = message;
     }
 
+    // Update player info in the header and stats area.
     function updateUserInfo() {
       document.getElementById('user-info').textContent = `Joueur #${userId} / ${coins} pièces`;
       document.getElementById('coins-display').textContent = coins;
     }
 
+    // Read frontend login state.
     function initUser() {
       const stored = localStorage.getItem('dino_user');
       if (!stored) {
@@ -81,11 +90,13 @@
       updateUserInfo();
     }
 
+    // Clear session and return to login page.
     function logout() {
       localStorage.removeItem('dino_user');
       window.location.href = 'login.html';
     }
 
+    // Load shop catalog + owned items, then render cards.
     async function loadShop() {
       const container = document.getElementById('shop');
       container.innerHTML = '';
@@ -103,6 +114,7 @@
         return;
       }
 
+      // Small icon mapping for known built-in items.
       const iconMap = {
         1: '🦘',
         2: '🐢',
@@ -127,6 +139,8 @@
         `;
 
         const button = card.querySelector('button');
+
+        // Only bind purchase action when the item is buyable.
         if (!has && !insufficient) {
           button.onclick = async () => {
             button.disabled = true;
@@ -152,6 +166,7 @@
       });
     }
 
+    // Page entry point.
     (async function init() {
       initUser();
       await loadShop();

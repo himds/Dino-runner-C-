@@ -4,10 +4,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dino_runner.Controllers;
 
+/// <summary>
+/// Provides achievement definitions and user unlock records.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AchievementsController(AppDbContext context) : ControllerBase
 {
+    /// <summary>
+    /// Return all achievement definitions.
+    /// Used by achievements.html to render the full achievement list.
+    /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<object>>> GetAll()
     {
@@ -23,6 +30,10 @@ public class AchievementsController(AppDbContext context) : ControllerBase
         return Ok(list);
     }
 
+    /// <summary>
+    /// Return unlocked achievements for a single user.
+    /// Frontend merges this list with all achievement definitions.
+    /// </summary>
     [HttpGet("user/{userId:int}")]
     public async Task<ActionResult<IEnumerable<object>>> GetByUser(int userId)
     {

@@ -8,6 +8,7 @@
 </head>
 <body>
   <div class="page">
+    <!-- Top page header: project title + current player summary -->
     <header class="page-header">
       <div>
         <h1 class="page-title">Dino Runner</h1>
@@ -16,6 +17,7 @@
       <span class="status-pill" id="user-info">Chargement des informations du joueur...</span>
     </header>
 
+    <!-- Main navigation shared by the static frontend pages -->
     <nav class="panel nav">
       <div class="nav-links">
         <a class="nav-link active" href="index.html">Jeu</a>
@@ -28,6 +30,7 @@
     </nav>
 
     <section class="hero">
+      <!-- Left side: gameplay area -->
       <div class="panel hero-card">
         <div class="inline-actions" style="justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 16px; flex-wrap: wrap;">
           <div>
@@ -37,8 +40,10 @@
           <button class="button button-primary" id="start-button" onclick="startGame()">Commencer</button>
         </div>
 
+        <!-- Dynamic game status message -->
         <div id="game-status" class="alert alert-info show">Prêt. Clique sur commencer ou appuie sur espace pour courir.</div>
 
+        <!-- Current activated shop items -->
         <div class="stats-row" style="margin-bottom: 12px;">
           <div class="stat-box">
             <div class="stat-label">Objets actifs</div>
@@ -46,11 +51,13 @@
           </div>
         </div>
 
+        <!-- Main game canvas -->
         <div class="canvas-shell">
           <canvas id="game" width="800" height="200"></canvas>
         </div>
       </div>
 
+      <!-- Right side: live run information -->
       <aside class="panel hero-card">
         <h2 class="card-title">État de la partie</h2>
         <div class="stats-row">
@@ -69,6 +76,8 @@
   </div>
 
   <script>
+    // Shared HTTP helper with timeout support.
+    // All frontend pages call backend APIs through this helper.
     const api = async (path, options = {}) => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), options.timeout ?? 5000);
@@ -91,14 +100,18 @@
       }
     };
 
+    // Player state loaded from localStorage and backend.
     let userId = null;
     let coins = 0;
+
+    // Shop effect flags used during gameplay.
     let hasDoubleJump = false;
     let speedReduction = 1;
     let hasShield = false;
     let jumpCount = 0;
     let itemsLoaded = false;
 
+    // Canvas and game runtime state.
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     let running = false;
@@ -110,29 +123,35 @@
     let frame = 0;
     let score = 0;
 
+    // Logout simply clears local frontend session state.
     function logout() {
       localStorage.removeItem('dino_user');
       window.location.href = 'login.html';
     }
 
+    // Update the status banner above the canvas.
     function setGameStatus(message, type = 'info') {
       const el = document.getElementById('game-status');
       el.className = `alert alert-${type} show`;
       el.textContent = message;
     }
 
+    // Refresh score panel on the right.
     function updateScoreDisplay() {
       document.getElementById('score-display').textContent = score;
     }
 
+    // Refresh text describing current run state.
     function updateRunDisplay(text) {
       document.getElementById('run-display').textContent = text;
     }
 
+    // Refresh top-right user information.
     function updateUserInfo() {
       document.getElementById('user-info').textContent = `Joueur #${userId} / ${coins} pièces`;
     }
 
+    // Show which purchased shop effects are currently available.
     function updateItemDisplay() {
       const items = [];
       if (hasDoubleJump) items.push('Double saut');
@@ -147,6 +166,7 @@
       document.getElementById('item-display').textContent = items.length ? items.join(' / ') : 'Aucun objet acheté';
     }
 
+    // Load owned shop items from backend and convert them into gameplay flags.
     async function loadOwnedItems() {
       try {
         const userItems = await api(`/api/shop/user/${userId}`);
@@ -166,6 +186,7 @@
       }
     }
 
+    // Read player info from localStorage, then sync shop items from backend.
     async function initUser() {
       const stored = localStorage.getItem('dino_user');
       if (!stored) {
@@ -179,6 +200,7 @@
       await loadOwnedItems();
     }
 
+    // Space key either starts the game or triggers jump / double jump.
     document.addEventListener('keydown', e => {
       if (e.code !== 'Space') return;
       e.preventDefault();
@@ -197,6 +219,7 @@
       }
     });
 
+    // Paint background layers to make the canvas less empty.
     function drawBackground() {
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, '#dff5ff');
@@ -225,6 +248,7 @@
       ctx.fillRect(0, 180, canvas.width, 2);
     }
 
+    // Reset per-run state and start the animation loop.
     function startGame() {
       if (!userId) {
         window.location.href = 'login.html';
@@ -252,6 +276,7 @@
       requestAnimationFrame(loop);
     }
 
+    // Main game loop: move player, spawn obstacles, detect collisions and render score.
     function loop() {
       if (!running) return;
 
@@ -303,6 +328,7 @@
       requestAnimationFrame(loop);
     }
 
+    // Stop the run, upload score and refresh coins + owned item state.
     async function gameOver() {
       running = false;
       updateRunDisplay('Terminé');
@@ -322,6 +348,7 @@
       }
     }
 
+    // Page entry point.
     (async function init() {
       updateScoreDisplay();
       updateRunDisplay('En attente');

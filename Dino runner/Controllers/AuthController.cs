@@ -8,10 +8,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dino_runner.Controllers;
 
+/// <summary>
+/// Handles registration and login.
+/// Passwords are stored as SHA256 hashes built from username + password.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController(AppDbContext context) : ControllerBase
 {
+    /// <summary>
+    /// Register a new player account.
+    /// Rejects duplicate usernames.
+    /// </summary>
     [HttpPost("register")]
     public async Task<ActionResult<object>> Register([FromBody] RegisterRequest request)
     {
@@ -34,6 +42,10 @@ public class AuthController(AppDbContext context) : ControllerBase
         return Ok(new { user.Id, user.Username, user.Coins });
     }
 
+    /// <summary>
+    /// Login using username and password.
+    /// Returns basic player info for frontend localStorage.
+    /// </summary>
     [HttpPost("login")]
     public async Task<ActionResult<object>> Login([FromBody] LoginRequest request)
     {
@@ -52,6 +64,9 @@ public class AuthController(AppDbContext context) : ControllerBase
         return Ok(new { user.Id, user.Username, user.Coins });
     }
 
+    /// <summary>
+    /// Small helper used by both register and login.
+    /// </summary>
     private static string HashPassword(string username, string password)
     {
         using var sha = SHA256.Create();
@@ -61,4 +76,3 @@ public class AuthController(AppDbContext context) : ControllerBase
         return Convert.ToHexString(hash);
     }
 }
-
