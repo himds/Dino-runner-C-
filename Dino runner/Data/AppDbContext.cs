@@ -79,7 +79,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<ShopItem>().HasData(
             new ShopItem { Id = 1, Name = "Double Jump", Description = "允许二段跳", Price = 200 },
             new ShopItem { Id = 2, Name = "Slow Speed", Description = "减慢障碍速度", Price = 150 },
-            new ShopItem { Id = 3, Name = "Shield", Description = "一次碰撞免死", Price = 250 }
+            new ShopItem { Id = 3, Name = "Shield", Description = "一次碰撞免死", Price = 250 },
+            new ShopItem { Id = 4, Name = "Score Booster", Description = "按E触发：30秒内获得分数翻倍", Price = 300}
         );
     }
 }
