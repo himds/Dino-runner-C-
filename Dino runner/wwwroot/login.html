@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dino Runner - 登录</title>
+  <title>Dino Runner - Connexion</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,46 +11,46 @@
     <header class="page-header">
       <div>
         <h1 class="page-title">Dino Runner</h1>
-        <p class="page-subtitle">简单又好玩的 Dino Runner，先登录再开跑。</p>
+        <p class="page-subtitle">Un Dino Runner simple et amusant. Connecte-toi avant de courir.</p>
       </div>
     </header>
 
     <nav class="panel nav">
       <div class="nav-links">
-        <a class="nav-link disabled" href="#" onclick="gotoPage('index.html'); return false;">游戏</a>
-        <a class="nav-link disabled" href="#" onclick="gotoPage('achievements.html'); return false;">成就</a>
-        <a class="nav-link disabled" href="#" onclick="gotoPage('shop.html'); return false;">商城</a>
+        <a class="nav-link disabled" href="#" onclick="gotoPage('index.html'); return false;">Jeu</a>
+        <a class="nav-link disabled" href="#" onclick="gotoPage('achievements.html'); return false;">Succès</a>
+        <a class="nav-link disabled" href="#" onclick="gotoPage('shop.html'); return false;">Boutique</a>
       </div>
       <div class="nav-actions">
-        <span class="status-pill" id="user-pill">未登录</span>
-        <button class="button button-secondary" id="logout-btn" onclick="logout()" style="display:none;">退出登录</button>
+        <span class="status-pill" id="user-pill">Déconnecté</span>
+        <button class="button button-secondary" id="logout-btn" onclick="logout()" style="display:none;">Se déconnecter</button>
       </div>
     </nav>
 
     <section class="panel form-card">
       <div class="form-grid">
         <div>
-          <h2 class="card-title">登录 / 注册</h2>
-          <p class="page-subtitle">输入用户名和密码，继续你的 Dino 之旅。</p>
+          <h2 class="card-title">Connexion / Inscription</h2>
+          <p class="page-subtitle">Entre ton nom d'utilisateur et ton mot de passe pour reprendre l'aventure.</p>
         </div>
 
         <div id="status" class="alert" role="alert"></div>
 
         <div>
-          <label class="form-label" for="username">用户名</label>
-          <input class="form-input" id="username" placeholder="至少 3 个字符" />
-          <div class="helper-text">用户名不能全是空格。</div>
+          <label class="form-label" for="username">Nom d'utilisateur</label>
+          <input class="form-input" id="username" placeholder="Au moins 3 caractères" />
+          <div class="helper-text">Le nom d'utilisateur ne peut pas être uniquement composé d'espaces.</div>
         </div>
 
         <div>
-          <label class="form-label" for="password">密码</label>
-          <input class="form-input" id="password" placeholder="至少 6 位" type="password" />
-          <div class="helper-text">建议使用字母和数字组合。</div>
+          <label class="form-label" for="password">Mot de passe</label>
+          <input class="form-input" id="password" placeholder="Au moins 6 caractères" type="password" />
+          <div class="helper-text">Il est conseillé d'utiliser une combinaison de lettres et de chiffres.</div>
         </div>
 
         <div class="inline-actions">
-          <button class="button button-secondary" onclick="register()">注册</button>
-          <button class="button button-primary" onclick="login()">登录</button>
+          <button class="button button-secondary" onclick="register()">S'inscrire</button>
+          <button class="button button-primary" onclick="login()">Se connecter</button>
         </div>
       </div>
     </section>
@@ -64,7 +64,7 @@
       });
       let data = null;
       try { data = await response.json(); } catch { data = null; }
-      if (!response.ok) throw data || { message: '请求失败' };
+      if (!response.ok) throw data || { message: 'Échec de la requête' };
       return data;
     };
 
@@ -84,11 +84,11 @@
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
       if (username.length < 3) {
-        showError('用户名至少需要 3 个字符。');
+        showError("Le nom d'utilisateur doit contenir au moins 3 caractères.");
         return null;
       }
       if (password.length < 6) {
-        showError('密码至少需要 6 位。');
+        showError('Le mot de passe doit contenir au moins 6 caractères.');
         return null;
       }
       return { username, password };
@@ -97,37 +97,37 @@
     async function register() {
       const payload = validateForm();
       if (!payload) return;
-      showInfo('正在注册，请稍候...');
+      showInfo('Inscription en cours...');
       try {
         const res = await api('/api/auth/register', { method: 'POST', body: JSON.stringify(payload) });
         localStorage.setItem('dino_user', JSON.stringify({ id: res.id, coins: res.coins || 0 }));
         updateLoginState();
-        showSuccess(`注册成功：玩家 #${res.id}（金币 ${res.coins || 0}），即将跳转到游戏页。`);
+        showSuccess(`Inscription réussie : joueur #${res.id} (${res.coins || 0} pièces). Redirection vers la page de jeu...`);
         setTimeout(() => window.location.href = 'index.html', 900);
       } catch (e) {
-        showError(e.message || '注册失败，请稍后再试。');
+        showError(e.message || "Échec de l'inscription, réessaie plus tard.");
       }
     }
 
     async function login() {
       const payload = validateForm();
       if (!payload) return;
-      showInfo('正在登录，请稍候...');
+      showInfo('Connexion en cours...');
       try {
         const res = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) });
         localStorage.setItem('dino_user', JSON.stringify({ id: res.id, coins: res.coins || 0 }));
         updateLoginState();
-        showSuccess(`登录成功：玩家 #${res.id}（金币 ${res.coins || 0}），即将跳转到游戏页。`);
+        showSuccess(`Connexion réussie : joueur #${res.id} (${res.coins || 0} pièces). Redirection vers la page de jeu...`);
         setTimeout(() => window.location.href = 'index.html', 900);
       } catch (e) {
-        showError(e.message || '登录失败，请检查用户名和密码。');
+        showError(e.message || "Échec de la connexion, vérifie ton nom d'utilisateur et ton mot de passe.");
       }
     }
 
     function gotoPage(page) {
       const stored = localStorage.getItem('dino_user');
       if (!stored) {
-        showInfo('请先登录后再访问游戏、成就和商城。');
+        showInfo('Connecte-toi d\'abord pour accéder au jeu, aux succès et à la boutique.');
         return;
       }
       window.location.href = page;
@@ -142,19 +142,19 @@
     function updateLoginState() {
       const stored = localStorage.getItem('dino_user');
       if (!stored) {
-        userPillEl.textContent = '未登录';
+        userPillEl.textContent = 'Déconnecté';
         logoutBtnEl.style.display = 'none';
         return;
       }
       const user = JSON.parse(stored);
-      userPillEl.textContent = `已登录：玩家 #${user.id} / 金币 ${user.coins || 0}`;
+      userPillEl.textContent = `Connecté : joueur #${user.id} / ${user.coins || 0} pièces`;
       logoutBtnEl.style.display = 'inline-flex';
     }
 
     (function init() {
       updateLoginState();
       if (localStorage.getItem('dino_user')) {
-        showInfo('检测到本地登录状态，你也可以直接前往游戏页。');
+        showInfo('Une session locale a été détectée, tu peux aller directement sur la page du jeu.');
       }
     })();
   </script>

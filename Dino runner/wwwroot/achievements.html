@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dino Runner - 成就</title>
+  <title>Dino Runner - Succès</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,25 +11,25 @@
     <header class="page-header">
       <div>
         <h1 class="page-title">Dino Runner</h1>
-        <p class="page-subtitle">成就展柜 · 看看你已经解锁了多少里程碑。</p>
+        <p class="page-subtitle">Vitrine des succès · vois combien d'étapes importantes tu as déjà débloquées.</p>
       </div>
-      <span class="status-pill" id="user-info">玩家信息加载中...</span>
+      <span class="status-pill" id="user-info">Chargement des informations du joueur...</span>
     </header>
 
     <nav class="panel nav">
       <div class="nav-links">
-        <a class="nav-link" href="index.html">游戏</a>
-        <a class="nav-link active" href="achievements.html">成就</a>
-        <a class="nav-link" href="shop.html">商城</a>
+        <a class="nav-link" href="index.html">Jeu</a>
+        <a class="nav-link active" href="achievements.html">Succès</a>
+        <a class="nav-link" href="shop.html">Boutique</a>
       </div>
       <div class="nav-actions">
-        <button class="button button-secondary" onclick="logout()">退出登录</button>
+        <button class="button button-secondary" onclick="logout()">Se déconnecter</button>
       </div>
     </nav>
 
     <section class="panel">
-      <h2 class="card-title">全部成就</h2>
-      <p class="page-subtitle">先完成统一卡片风格和基础展示，下一步再补筛选、统计和解锁时间。</p>
+      <h2 class="card-title">Tous les succès</h2>
+      <p class="page-subtitle">Cette étape affiche déjà les cartes de base ; le tri, les statistiques et la date de déblocage peuvent être ajoutés ensuite.</p>
       <div id="achievements" class="grid achievement-grid"></div>
     </section>
   </div>
@@ -38,7 +38,7 @@
     const api = async (path, options) => {
       const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
       const data = await response.json().catch(() => null);
-      if (!response.ok) throw data || { message: '请求失败' };
+      if (!response.ok) throw data || { message: 'Échec de la requête' };
       return data;
     };
 
@@ -54,7 +54,7 @@
       const obj = JSON.parse(stored);
       userId = obj.id;
       coins = obj.coins || 0;
-      document.getElementById('user-info').textContent = `玩家 #${userId} / 金币 ${coins}`;
+      document.getElementById('user-info').textContent = `Joueur #${userId} / ${coins} pièces`;
     }
 
     function logout() {
@@ -70,7 +70,7 @@
       list.innerHTML = '';
 
       if (!all.length) {
-        list.innerHTML = '<div class="empty-state">暂时还没有成就定义。</div>';
+        list.innerHTML = '<div class="empty-state">Aucun succès n’est défini pour le moment.</div>';
         return;
       }
 
@@ -80,8 +80,8 @@
         card.className = `card achievement-card ${done ? 'unlocked' : 'locked'}`;
         card.innerHTML = `
           <h3 class="card-title">${done ? '🏆' : '🔒'} ${a.title}</h3>
-          <div class="card-meta">条件：${a.condition}</div>
-          <div class="card-price">${done ? '已解锁' : '未解锁'}</div>
+          <div class="card-meta">Condition : ${a.condition}</div>
+          <div class="card-price">${done ? 'Débloqué' : 'Verrouillé'}</div>
         `;
         list.appendChild(card);
       });

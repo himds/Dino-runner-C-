@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dino Runner - 游戏</title>
+  <title>Dino Runner - Jeu</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,19 +11,19 @@
     <header class="page-header">
       <div>
         <h1 class="page-title">Dino Runner</h1>
-        <p class="page-subtitle">跳起来，躲开障碍，看看这次能跑多远。</p>
+        <p class="page-subtitle">Saute, évite les obstacles et vois jusqu'où tu peux aller.</p>
       </div>
-      <span class="status-pill" id="user-info">玩家信息加载中...</span>
+      <span class="status-pill" id="user-info">Chargement des informations du joueur...</span>
     </header>
 
     <nav class="panel nav">
       <div class="nav-links">
-        <a class="nav-link active" href="index.html">游戏</a>
-        <a class="nav-link" href="achievements.html">成就</a>
-        <a class="nav-link" href="shop.html">商城</a>
+        <a class="nav-link active" href="index.html">Jeu</a>
+        <a class="nav-link" href="achievements.html">Succès</a>
+        <a class="nav-link" href="shop.html">Boutique</a>
       </div>
       <div class="nav-actions">
-        <button class="button button-secondary" onclick="logout()">退出登录</button>
+        <button class="button button-secondary" onclick="logout()">Se déconnecter</button>
       </div>
     </nav>
 
@@ -31,18 +31,18 @@
       <div class="panel hero-card">
         <div class="inline-actions" style="justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 16px; flex-wrap: wrap;">
           <div>
-            <h2 class="card-title">开始一局</h2>
-            <p class="page-subtitle">按空格跳跃，躲避障碍物。已购买的道具会在这里自动生效。</p>
+            <h2 class="card-title">Lancer une partie</h2>
+            <p class="page-subtitle">Appuie sur espace pour sauter et éviter les obstacles. Les objets achetés s'activent automatiquement.</p>
           </div>
-          <button class="button button-primary" onclick="startGame()">开始游戏</button>
+          <button class="button button-primary" id="start-button" onclick="startGame()">Commencer</button>
         </div>
 
-        <div id="game-status" class="alert alert-info show">准备就绪，按下开始或者空格键开跑。</div>
+        <div id="game-status" class="alert alert-info show">Prêt. Clique sur commencer ou appuie sur espace pour courir.</div>
 
         <div class="stats-row" style="margin-bottom: 12px;">
           <div class="stat-box">
-            <div class="stat-label">已激活道具</div>
-            <div class="stat-value" id="item-display" style="font-size: 16px;">加载中...</div>
+            <div class="stat-label">Objets actifs</div>
+            <div class="stat-value" id="item-display" style="font-size: 16px;">Synchronisation...</div>
           </div>
         </div>
 
@@ -52,36 +52,119 @@
       </div>
 
       <aside class="panel hero-card">
-        <h2 class="card-title">本局状态</h2>
+        <h2 class="card-title">État de la partie</h2>
         <div class="stats-row">
           <div class="stat-box">
-            <div class="stat-label">当前分数</div>
+            <div class="stat-label">Score actuel</div>
             <div class="stat-value" id="score-display">0</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">游戏状态</div>
-            <div class="stat-value" id="run-display">待开始</div>
+            <div class="stat-label">État du jeu</div>
+            <div class="stat-value" id="run-display">En attente</div>
           </div>
         </div>
-        <p class="page-subtitle" style="margin-top: 14px;">商城道具说明：Double Jump 可二段跳，Slow Speed 会降低障碍速度，Shield 可抵挡一次碰撞。</p>
+        <p class="page-subtitle" style="margin-top: 14px;">Objets de la boutique : Double Jump permet un double saut, Slow Speed ralentit les obstacles, Shield bloque une collision.</p>
       </aside>
     </section>
   </div>
 
   <script>
-    const api = async (path, options) => {
-      const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) throw data || { message: '请求失败' };
-      return data;
+    const api = async (path, options = {}) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), options.timeout ?? 5000);
+      try {
+        const response = await fetch(path, {
+          headers: { "Content-Type": "application/json" },
+          ...options,
+          signal: controller.signal
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) throw data || { message: 'Échec de la requête' };
+        return data;
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          throw { message: 'Délai dépassé, vérifie que le backend fonctionne correctement' };
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
     };
 
     let userId = null;
     let coins = 0;
-    let hasDoubleJump = false; // 二段跳开关
-    let speedReduction = 1;    // 速度缩减系数
-    let hasShield = false;     // 护盾开关
-    let jumpCount = 0;         // 记录当前跳跃次数
+    let hasDoubleJump = false;
+    let speedReduction = 1;
+    let hasShield = false;
+    let jumpCount = 0;
+    let itemsLoaded = false;
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    let running = false;
+    let dinoY = 150;
+    let velocity = 0;
+    const gravity = 0.5;
+    const jump = -10;
+    let obstacles = [];
+    let frame = 0;
+    let score = 0;
+
+    function logout() {
+      localStorage.removeItem('dino_user');
+      window.location.href = 'login.html';
+    }
+
+    function setGameStatus(message, type = 'info') {
+      const el = document.getElementById('game-status');
+      el.className = `alert alert-${type} show`;
+      el.textContent = message;
+    }
+
+    function updateScoreDisplay() {
+      document.getElementById('score-display').textContent = score;
+    }
+
+    function updateRunDisplay(text) {
+      document.getElementById('run-display').textContent = text;
+    }
+
+    function updateUserInfo() {
+      document.getElementById('user-info').textContent = `Joueur #${userId} / ${coins} pièces`;
+    }
+
+    function updateItemDisplay() {
+      const items = [];
+      if (hasDoubleJump) items.push('Double saut');
+      if (speedReduction < 1) items.push('Ralentissement');
+      if (hasShield) items.push('Bouclier');
+
+      if (!itemsLoaded) {
+        document.getElementById('item-display').textContent = 'Échec de synchro, mode par défaut';
+        return;
+      }
+
+      document.getElementById('item-display').textContent = items.length ? items.join(' / ') : 'Aucun objet acheté';
+    }
+
+    async function loadOwnedItems() {
+      try {
+        const userItems = await api(`/api/shop/user/${userId}`);
+        const itemIds = userItems.map(i => i.shopItemId);
+        hasDoubleJump = itemIds.includes(1);
+        speedReduction = itemIds.includes(2) ? 0.7 : 1;
+        hasShield = itemIds.includes(3);
+        itemsLoaded = true;
+        updateItemDisplay();
+      } catch (e) {
+        hasDoubleJump = false;
+        speedReduction = 1;
+        hasShield = false;
+        itemsLoaded = false;
+        updateItemDisplay();
+        setGameStatus(`Échec de synchronisation des objets : ${e.message || 'erreur inconnue'}. Tu peux quand même lancer la partie.`, 'error');
+      }
+    }
 
     async function initUser() {
       const stored = localStorage.getItem('dino_user');
@@ -92,43 +175,25 @@
       const obj = JSON.parse(stored);
       userId = obj.id;
       coins = obj.coins || 0;
-      try {
-        const userItems = await api(`/api/Shop/user/${userId}`);
-        const itemIds = userItems.map(i => i.shopItemId);
-        
-        // 根据 ID 激活功能
-        hasDoubleJump = itemIds.includes(1); // 1 = Double Jump
-        speedReduction = itemIds.includes(2) ? 0.7 : 1; // 2 = Slow Speed
-        hasShield = itemIds.includes(3);     // 3 = Shield
-        
-        console.log("已激活道具:", { hasDoubleJump, speedReduction, hasShield });
-      } catch (e) { console.error("获取道具失败", e); }
-      document.getElementById('user-info').textContent = `玩家 #${userId} / 金币 ${coins}`;
-      }
-
-
-    // Game logic
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    let running = false;
-    let dinoY = 150, velocity = 0;
-    const gravity = 0.5, jump = -10;
-    let obstacles = [];
-    let frame = 0;
-    let score = 0;
+      updateUserInfo();
+      await loadOwnedItems();
+    }
 
     document.addEventListener('keydown', e => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (!running) startGame();
-        const maxJumps = hasDoubleJump ? 2 : 1;
-          if (dinoY >= 150) {
-              velocity = jump;
-              jumpCount = 1;
-          } else if (jumpCount < maxJumps) {
-              velocity = jump;
-              jumpCount++;
-          }
+      if (e.code !== 'Space') return;
+      e.preventDefault();
+      if (!running) {
+        startGame();
+        return;
+      }
+
+      const maxJumps = hasDoubleJump ? 2 : 1;
+      if (dinoY >= 150) {
+        velocity = jump;
+        jumpCount = 1;
+      } else if (jumpCount < maxJumps) {
+        velocity = jump;
+        jumpCount++;
       }
     });
 
@@ -161,7 +226,12 @@
     }
 
     function startGame() {
-      if (!userId) return window.location.href = 'login.html';
+      if (!userId) {
+        window.location.href = 'login.html';
+        return;
+      }
+      if (running) return;
+
       running = true;
       dinoY = 150;
       velocity = 0;
@@ -170,14 +240,21 @@
       frame = 0;
       score = 0;
       updateScoreDisplay();
-      updateRunDisplay('进行中');
+      updateRunDisplay('En cours');
       updateItemDisplay();
-      setGameStatus('游戏中... 已购道具已自动生效。', 'info');
+
+      if (itemsLoaded) {
+        setGameStatus('Partie en cours... Les objets achetés sont actifs.', 'info');
+      } else {
+        setGameStatus('Partie en cours... Les objets de la boutique ne sont pas synchronisés, la partie démarre en mode par défaut.', 'info');
+      }
+
       requestAnimationFrame(loop);
     }
 
     function loop() {
       if (!running) return;
+
       frame++;
       score += 1;
       updateScoreDisplay();
@@ -191,58 +268,67 @@
         velocity = 0;
         jumpCount = 0;
       }
+
       ctx.fillStyle = '#27ae60';
       ctx.fillRect(50, dinoY, 30, 30);
 
       if (frame % 90 === 0) {
         obstacles.push({ x: canvas.width, w: 20 + Math.random() * 20 });
       }
+
       ctx.fillStyle = '#e74c3c';
       for (const obs of obstacles) {
-          obs.x -= 4 + Math.min(6, score / 500) * speedReduction;
-          ctx.fillRect(obs.x, 160, obs.w, 20);
+        obs.x -= 4 + Math.min(6, score / 500) * speedReduction;
+        ctx.fillRect(obs.x, 160, obs.w, 20);
       }
       obstacles = obstacles.filter(o => o.x + o.w > 0);
 
-      // collision
       for (let i = obstacles.length - 1; i >= 0; i--) {
-          const obs = obstacles[i];
-          if (50 < obs.x + obs.w && 50 + 30 > obs.x && dinoY + 30 > 160) {
-              if (hasShield) { // 如果有护盾
-                  hasShield = false; // 消耗护盾
-                  obstacles.splice(i, 1); // 移除该障碍物
-                  console.log("护盾抵挡了一次碰撞！");
-                  continue;
-              }
-              gameOver();
-              return;
+        const obs = obstacles[i];
+        if (50 < obs.x + obs.w && 50 + 30 > obs.x && dinoY + 30 > 160) {
+          if (hasShield) {
+            hasShield = false;
+            obstacles.splice(i, 1);
+            updateItemDisplay();
+            setGameStatus('Le bouclier a bloqué une collision. Continue !', 'success');
+            continue;
           }
+          gameOver();
+          return;
+        }
       }
 
       ctx.fillStyle = '#1f2937';
-      ctx.fillText(`Score: ${score}`, 16, 24);
+      ctx.fillText(`Score : ${score}`, 16, 24);
       requestAnimationFrame(loop);
     }
 
     async function gameOver() {
       running = false;
-      updateRunDisplay('已结束');
-      setGameStatus(`游戏结束，分数 ${score}`,'error');
+      updateRunDisplay('Terminé');
+      setGameStatus(`Partie terminée, score ${score}`, 'error');
       try {
-        const res = await api('/api/scores', { method: 'POST', body: JSON.stringify({ userId, value: score }) });
+        const res = await api('/api/scores', {
+          method: 'POST',
+          body: JSON.stringify({ userId, value: score })
+        });
         coins = res.totalCoins;
         localStorage.setItem('dino_user', JSON.stringify({ id: userId, coins }));
         updateUserInfo();
-        setGameStatus(`分数上传成功，获得金币 ${res.newCoins}${res.unlockedAchievementIds?.length ? `，解锁成就：${res.unlockedAchievementIds.join(',')}` : ''}`,'success');
+        setGameStatus(`Score envoyé avec succès, ${res.newCoins} pièces gagnées${res.unlockedAchievementIds?.length ? `, succès débloqués : ${res.unlockedAchievementIds.join(', ')}` : ''}`, 'success');
         await loadOwnedItems();
       } catch (e) {
-        setGameStatus(e.message || '上传分数失败', 'error');
+        setGameStatus(e.message || 'Échec de l’envoi du score', 'error');
       }
     }
 
     (async function init() {
+      updateScoreDisplay();
+      updateRunDisplay('En attente');
       await initUser();
-      setGameStatus('商城道具已同步完成，可以开始游戏。', 'info');
+      if (itemsLoaded) {
+        setGameStatus('Synchronisation des objets terminée, tu peux commencer.', 'info');
+      }
     })();
   </script>
 </body>

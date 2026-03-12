@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dino Runner - 商城</title>
+  <title>Dino Runner - Boutique</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,19 +11,19 @@
     <header class="page-header">
       <div>
         <h1 class="page-title">Dino Runner</h1>
-        <p class="page-subtitle">商城 · 给你的 Dino 添点装备，下一局更有底气。</p>
+        <p class="page-subtitle">Boutique · équipe ton Dino pour être plus à l'aise à la prochaine partie.</p>
       </div>
-      <span class="status-pill" id="user-info">玩家信息加载中...</span>
+      <span class="status-pill" id="user-info">Chargement des informations du joueur...</span>
     </header>
 
     <nav class="panel nav">
       <div class="nav-links">
-        <a class="nav-link" href="index.html">游戏</a>
-        <a class="nav-link" href="achievements.html">成就</a>
-        <a class="nav-link active" href="shop.html">商城</a>
+        <a class="nav-link" href="index.html">Jeu</a>
+        <a class="nav-link" href="achievements.html">Succès</a>
+        <a class="nav-link active" href="shop.html">Boutique</a>
       </div>
       <div class="nav-actions">
-        <button class="button button-secondary" onclick="logout()">退出登录</button>
+        <button class="button button-secondary" onclick="logout()">Se déconnecter</button>
       </div>
     </nav>
 
@@ -32,17 +32,17 @@
 
       <div class="stats-row" style="margin-bottom: 16px;">
         <div class="stat-box">
-          <div class="stat-label">当前金币</div>
+          <div class="stat-label">Pièces actuelles</div>
           <div class="stat-value" id="coins-display">0</div>
         </div>
         <div class="stat-box">
-          <div class="stat-label">已拥有道具</div>
+          <div class="stat-label">Objets possédés</div>
           <div class="stat-value" id="owned-count">0</div>
         </div>
       </div>
 
-      <h2 class="card-title">道具列表</h2>
-      <p class="page-subtitle">购买成功后，道具会在游戏页自动生效。</p>
+      <h2 class="card-title">Liste des objets</h2>
+      <p class="page-subtitle">Une fois l'achat effectué, l'objet s'activera automatiquement sur la page de jeu.</p>
       <div id="shop" class="grid shop-grid"></div>
     </section>
   </div>
@@ -51,7 +51,7 @@
     const api = async (path, options) => {
       const response = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
       const data = await response.json().catch(() => null);
-      if (!response.ok) throw data || { message: '请求失败' };
+      if (!response.ok) throw data || { message: 'Échec de la requête' };
       return data;
     };
 
@@ -65,7 +65,7 @@
     }
 
     function updateUserInfo() {
-      document.getElementById('user-info').textContent = `玩家 #${userId} / 金币 ${coins}`;
+      document.getElementById('user-info').textContent = `Joueur #${userId} / ${coins} pièces`;
       document.getElementById('coins-display').textContent = coins;
     }
 
@@ -99,7 +99,7 @@
       document.getElementById('owned-count').textContent = owned.length;
 
       if (!items.length) {
-        container.innerHTML = '<div class="empty-state">商城暂时没有商品。</div>';
+        container.innerHTML = '<div class="empty-state">La boutique ne contient aucun objet pour le moment.</div>';
         return;
       }
 
@@ -115,13 +115,13 @@
         const card = document.createElement('article');
         card.className = 'card';
         card.innerHTML = `
-          <div class="card-meta">${iconMap[item.id] || '🎒'} 道具</div>
+          <div class="card-meta">${iconMap[item.id] || '🎒'} Objet</div>
           <h3 class="card-title">${item.name}</h3>
-          <div class="card-meta">${item.description || '暂无描述'}</div>
+          <div class="card-meta">${item.description || 'Aucune description'}</div>
           <div class="card-price">💰 ${item.price}</div>
           <div class="card-actions">
             <button class="button ${has ? 'button-ghost' : 'button-primary'}" ${has || insufficient ? 'disabled' : ''}>
-              ${has ? '已拥有' : insufficient ? '金币不足' : `购买（${item.price}）`}
+              ${has ? 'Déjà possédé' : insufficient ? 'Pièces insuffisantes' : `Acheter (${item.price})`}
             </button>
           </div>
         `;
@@ -130,7 +130,7 @@
         if (!has && !insufficient) {
           button.onclick = async () => {
             button.disabled = true;
-            button.textContent = '购买中...';
+            button.textContent = 'Achat en cours...';
             try {
               const res = await api('/api/shop/purchase', {
                 method: 'POST',
@@ -139,10 +139,10 @@
               coins = res.coins;
               localStorage.setItem('dino_user', JSON.stringify({ id: userId, coins }));
               updateUserInfo();
-              setStatus(`购买成功：${item.name}，去游戏页就能看到效果。`, 'success');
+              setStatus(`Achat réussi : ${item.name}. Va sur la page de jeu pour voir l'effet.`, 'success');
               await loadShop();
             } catch (e) {
-              setStatus(e.message || '购买失败', 'error');
+              setStatus(e.message || "Échec de l'achat", 'error');
               await loadShop();
             }
           };
@@ -155,7 +155,7 @@
     (async function init() {
       initUser();
       await loadShop();
-      setStatus('商城加载完成，挑一个顺手的道具吧。', 'info');
+      setStatus('Boutique chargée, choisis l’objet qui te convient.', 'info');
     })();
   </script>
 </body>
