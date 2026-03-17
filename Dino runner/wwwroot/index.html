@@ -66,6 +66,10 @@
             <div class="stat-value" id="score-display">0</div>
           </div>
           <div class="stat-box">
+            <div class="stat-label">Pièces (cette partie)</div>
+            <div class="stat-value" id="run-coins-display">0</div>
+          </div>
+          <div class="stat-box">
             <div class="stat-label">État du jeu</div>
             <div class="stat-value" id="run-display">En attente</div>
           </div>
@@ -120,8 +124,10 @@
     const gravity = 0.5;
     const jump = -10;
     let obstacles = [];
+    let coinsOnTrack = [];
     let frame = 0;
     let score = 0;
+    let runCoins = 0;
 
     // Logout simply clears local frontend session state.
     function logout() {
@@ -139,6 +145,10 @@
     // Refresh score panel on the right.
     function updateScoreDisplay() {
       document.getElementById('score-display').textContent = score;
+    }
+
+    function updateRunCoinsDisplay() {
+      document.getElementById('run-coins-display').textContent = runCoins;
     }
 
     // Refresh text describing current run state.
@@ -261,9 +271,12 @@
       velocity = 0;
       jumpCount = 0;
       obstacles = [];
+      coinsOnTrack = [];
       frame = 0;
       score = 0;
+      runCoins = 0;
       updateScoreDisplay();
+      updateRunCoinsDisplay();
       updateRunDisplay('En cours');
       updateItemDisplay();
 
@@ -308,6 +321,42 @@
       }
       obstacles = obstacles.filter(o => o.x + o.w > 0);
 
+      // Spawn coins on a regular interval.
+      if (frame % 120 === 0) {
+        const y = 110 + Math.random() * 40;
+        coinsOnTrack.push({ x: canvas.width + 10, y, r: 8 });
+      }
+
+      // Move + draw coins.
+      ctx.fillStyle = '#f39c12';
+      for (const c of coinsOnTrack) {
+        c.x -= 4 + Math.min(6, score / 500) * speedReduction;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      coinsOnTrack = coinsOnTrack.filter(c => c.x + c.r > 0);
+
+      // Coin pickup detection (simple AABB vs circle bound).
+      for (let i = coinsOnTrack.length - 1; i >= 0; i--) {
+        const c = coinsOnTrack[i];
+        const dinoLeft = 50;
+        const dinoTop = dinoY;
+        const dinoRight = 50 + 30;
+        const dinoBottom = dinoY + 30;
+        const coinLeft = c.x - c.r;
+        const coinTop = c.y - c.r;
+        const coinRight = c.x + c.r;
+        const coinBottom = c.y + c.r;
+
+        const hit = dinoLeft < coinRight && dinoRight > coinLeft && dinoTop < coinBottom && dinoBottom > coinTop;
+        if (hit) {
+          coinsOnTrack.splice(i, 1);
+          runCoins += 1;
+          updateRunCoinsDisplay();
+        }
+      }
+
       for (let i = obstacles.length - 1; i >= 0; i--) {
         const obs = obstacles[i];
         if (50 < obs.x + obs.w && 50 + 30 > obs.x && dinoY + 30 > 160) {
@@ -325,6 +374,7 @@
 
       ctx.fillStyle = '#1f2937';
       ctx.fillText(`Score : ${score}`, 16, 24);
+      ctx.fillText(`Pièces : ${runCoins}`, 16, 44);
       requestAnimationFrame(loop);
     }
 
@@ -336,12 +386,12 @@
       try {
         const res = await api('/api/scores', {
           method: 'POST',
-          body: JSON.stringify({ userId, value: score })
+          body: JSON.stringify({ userId, value: score, coinsCollected: runCoins })
         });
         coins = res.totalCoins;
         localStorage.setItem('dino_user', JSON.stringify({ id: userId, coins }));
         updateUserInfo();
-        setGameStatus(`Score envoyé avec succès, ${res.newCoins} pièces gagnées${res.unlockedAchievementIds?.length ? `, succès débloqués : ${res.unlockedAchievementIds.join(', ')}` : ''}`, 'success');
+        setGameStatus(`Partie envoyée : +${res.newCoins} pièces${res.unlockedAchievementIds?.length ? `, succès débloqués : ${res.unlockedAchievementIds.join(', ')}` : ''}`, 'success');
         await loadOwnedItems();
       } catch (e) {
         setGameStatus(e.message || 'Échec de l’envoi du score', 'error');
@@ -351,6 +401,7 @@
     // Page entry point.
     (async function init() {
       updateScoreDisplay();
+      updateRunCoinsDisplay();
       updateRunDisplay('En attente');
       await initUser();
       if (itemsLoaded) {

@@ -16,7 +16,7 @@ public class ScoresController(AppDbContext context) : ControllerBase
 {
     /// <summary>
     /// 提交一局游戏的分数。
-    /// 处理流程：写入分数 → 计算金币奖励 → 判定是否解锁新成就 → 返回结算结果。
+    /// 处理流程：写入分数 → 累加本局拾取金币 → 判定是否解锁新成就 → 返回结算结果。
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<ScoreSubmitResponse>> SubmitScore([FromBody] ScoreSubmitRequest request)
@@ -36,8 +36,8 @@ public class ScoresController(AppDbContext context) : ControllerBase
 
         context.Scores.Add(score);
 
-        // 当前项目约定：每 10 分奖励 1 金币。
-        var coinsEarned = request.Value / 10;
+        // 金币来源：由前端上报的“本局拾取金币数”（游戏里捡到的金币）。
+        var coinsEarned = request.CoinsCollected;
         user.Coins += coinsEarned;
 
         await context.SaveChangesAsync();
