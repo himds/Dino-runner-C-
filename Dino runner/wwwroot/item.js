@@ -1,6 +1,5 @@
 ﻿// items.js
 
-// 道具状态对象
 export const gameState = {
     hasDoubleJump: false,
     speedReduction: 1,
@@ -9,49 +8,29 @@ export const gameState = {
 };
 
 /**
- * 从 API 加载用户拥有的道具并更新状态
- * @param {number} userId 
- * @param {function} api 这里的 api 是你在 HTML 中定义的 fetch 封装
+ * 从 API 加载并直接激活所有已购道具
  */
 export async function loadOwnedItems(userId, api) {
     try {
         const userItems = await api(`/api/shop/user/${userId}`);
         const itemIds = userItems.map(i => i.shopItemId);
 
-        // 逻辑硬编码映射：1-双倍跳跃, 2-减速, 3-护盾
+        // 映射 ID：1-双倍跳跃, 2-减速, 3-护盾
         gameState.hasDoubleJump = itemIds.includes(1);
         gameState.speedReduction = itemIds.includes(2) ? 0.7 : 1;
         gameState.hasShield = itemIds.includes(3);
+
         gameState.itemsLoaded = true;
-
-        return { success: true, state: gameState };
+        return { success: true };
     } catch (e) {
-        gameState.hasDoubleJump = false;
-        gameState.speedReduction = 1;
-        gameState.hasShield = false;
+        console.error("同步失败:", e);
         gameState.itemsLoaded = false;
-
-        console.error("道具同步失败:", e);
         return { success: false, error: e.message };
     }
 }
 
 /**
- * 获取当前激活道具的文字描述
- */
-export function getActiveItemsText() {
-    if (!gameState.itemsLoaded) return '同步失败，默认模式';
-
-    const activeList = [];
-    if (gameState.hasDoubleJump) activeList.push('双倍跳跃');
-    if (gameState.speedReduction < 1) activeList.push('减速');
-    if (gameState.hasShield) activeList.push('护盾');
-
-    return activeList.length ? activeList.join(' / ') : '未购买道具';
-}
-
-/**
- * 消耗护盾的触发函数
+ * 消耗护盾
  */
 export function consumeShield() {
     if (gameState.hasShield) {
@@ -59,4 +38,16 @@ export function consumeShield() {
         return true;
     }
     return false;
+}
+
+/**
+ * 获取状态文字（可选，如果你还需要在 UI 显示的话）
+ */
+export function getActiveItemsText() {
+    if (!gameState.itemsLoaded) return 'Synchronisation...';
+    const list = [];
+    if (gameState.hasDoubleJump) list.push('Double Saut');
+    if (gameState.speedReduction < 1) list.push('Vitesse Réduite');
+    if (gameState.hasShield) list.push('Bouclier');
+    return list.length ? list.join(' / ') : 'Aucun objet';
 }
