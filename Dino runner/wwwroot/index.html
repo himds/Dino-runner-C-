@@ -8,7 +8,6 @@
 </head>
 <body>
   <div class="page">
-    <!-- Top page header: project title + current player summary -->
     <header class="page-header">
       <div>
         <h1 class="page-title">Dino Runner</h1>
@@ -17,7 +16,6 @@
       <span class="status-pill" id="user-info">Chargement des informations du joueur...</span>
     </header>
 
-    <!-- Main navigation shared by the static frontend pages -->
     <nav class="panel nav">
       <div class="nav-links">
         <a class="nav-link active" href="index.html">Jeu</a>
@@ -25,25 +23,22 @@
         <a class="nav-link" href="shop.html">Boutique</a>
       </div>
       <div class="nav-actions">
-        <button class="button button-secondary" onclick="logout()">Se déconnecter</button>
+      <button id="logout-btn" class="button button-secondary">Se déconnecter</button>
       </div>
     </nav>
 
     <section class="hero">
-      <!-- Left side: gameplay area -->
       <div class="panel hero-card">
         <div class="inline-actions" style="justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 16px; flex-wrap: wrap;">
           <div>
             <h2 class="card-title">Lancer une partie</h2>
             <p class="page-subtitle">Appuie sur espace pour sauter et éviter les obstacles. Les objets achetés s'activent automatiquement.</p>
           </div>
-          <button class="button button-primary" id="start-button" onclick="startGame()">Commencer</button>
+          <button id="start-button" class="button button-primary">Commencer</button>
         </div>
 
-        <!-- Dynamic game status message -->
         <div id="game-status" class="alert alert-info show">Prêt. Clique sur commencer ou appuie sur espace pour courir.</div>
 
-        <!-- Current activated shop items -->
         <div class="stats-row" style="margin-bottom: 12px;">
           <div class="stat-box">
             <div class="stat-label">Objets actifs</div>
@@ -51,13 +46,11 @@
           </div>
         </div>
 
-        <!-- Main game canvas -->
         <div class="canvas-shell">
           <canvas id="game" width="800" height="200"></canvas>
         </div>
       </div>
 
-      <!-- Right side: live run information -->
       <aside class="panel hero-card">
         <h2 class="card-title">État de la partie</h2>
         <div class="stats-row">
@@ -66,348 +59,152 @@
             <div class="stat-value" id="score-display">0</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">Pièces (cette partie)</div>
-            <div class="stat-value" id="run-coins-display">0</div>
-          </div>
-          <div class="stat-box">
             <div class="stat-label">État du jeu</div>
             <div class="stat-value" id="run-display">En attente</div>
           </div>
         </div>
-        <p class="page-subtitle" style="margin-top: 14px;">Objets de la boutique : Double Jump permet un double saut, Slow Speed ralentit les obstacles, Shield bloque une collision.</p>
       </aside>
     </section>
   </div>
 
-  <script>
-    // Shared HTTP helper with timeout support.
-    // All frontend pages call backend APIs through this helper.
-    const api = async (path, options = {}) => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), options.timeout ?? 5000);
-      try {
-        const response = await fetch(path, {
-          headers: { "Content-Type": "application/json" },
-          ...options,
-          signal: controller.signal
-        });
-        const data = await response.json().catch(() => null);
-        if (!response.ok) throw data || { message: 'Échec de la requête' };
-        return data;
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          throw { message: 'Délai dépassé, vérifie que le backend fonctionne correctement' };
-        }
-        throw error;
-      } finally {
-        clearTimeout(timeout);
-      }
-    };
+  <script type="module">
+      import { gameState, loadOwnedItems, consumeShield, getActiveItemsText } from './item.js';
 
-    // Player state loaded from localStorage and backend.
-    let userId = null;
-    let coins = 0;
+      // --- 基础配置 ---
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      let running = false;
+      let score = 0;
+      let frame = 0;
+      let obstacles = [];
+      let dinoY = 150;
+      let velocity = 0;
+      const gravity = 0.5;
+      const jump = -10;
+      let jumpCount = 0;
+      let userId = null;
+      let coins = 0;
 
-    // Shop effect flags used during gameplay.
-    let hasDoubleJump = false;
-    let speedReduction = 1;
-    let hasShield = false;
-    let jumpCount = 0;
-    let itemsLoaded = false;
+      const api = async (path, options = {}) => {
+          const res = await fetch(path, {
+              headers: { "Content-Type": "application/json" },
+              ...options
+          });
+          return res.ok ? res.json() : Promise.reject(await res.json());
+      };
 
-    // Canvas and game runtime state.
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    let running = false;
-    let dinoY = 150;
-    let velocity = 0;
-    const gravity = 0.5;
-    const jump = -10;
-    let obstacles = [];
-    let coinsOnTrack = [];
-    let frame = 0;
-    let score = 0;
-    let runCoins = 0;
-
-    // Logout simply clears local frontend session state.
-    function logout() {
-      localStorage.removeItem('dino_user');
-      window.location.href = 'login.html';
-    }
-
-    // Update the status banner above the canvas.
-    function setGameStatus(message, type = 'info') {
-      const el = document.getElementById('game-status');
-      el.className = `alert alert-${type} show`;
-      el.textContent = message;
-    }
-
-    // Refresh score panel on the right.
-    function updateScoreDisplay() {
-      document.getElementById('score-display').textContent = score;
-    }
-
-    function updateRunCoinsDisplay() {
-      document.getElementById('run-coins-display').textContent = runCoins;
-    }
-
-    // Refresh text describing current run state.
-    function updateRunDisplay(text) {
-      document.getElementById('run-display').textContent = text;
-    }
-
-    // Refresh top-right user information.
-    function updateUserInfo() {
-      document.getElementById('user-info').textContent = `Joueur #${userId} / ${coins} pièces`;
-    }
-
-    // Show which purchased shop effects are currently available.
-    function updateItemDisplay() {
-      const items = [];
-      if (hasDoubleJump) items.push('Double saut');
-      if (speedReduction < 1) items.push('Ralentissement');
-      if (hasShield) items.push('Bouclier');
-
-      if (!itemsLoaded) {
-        document.getElementById('item-display').textContent = 'Échec de synchro, mode par défaut';
-        return;
+      // --- UI 更新 ---
+      function updateUI() {
+          document.getElementById('user-info').textContent = `Joueur #${userId} / ${coins} pièces`;
+          document.getElementById('item-display').textContent = getActiveItemsText();
+          document.getElementById('score-display').textContent = score;
       }
 
-      document.getElementById('item-display').textContent = items.length ? items.join(' / ') : 'Aucun objet acheté';
-    }
-
-    // Load owned shop items from backend and convert them into gameplay flags.
-    async function loadOwnedItems() {
-      try {
-        const userItems = await api(`/api/shop/user/${userId}`);
-        const itemIds = userItems.map(i => i.shopItemId);
-        hasDoubleJump = itemIds.includes(1);
-        speedReduction = itemIds.includes(2) ? 0.7 : 1;
-        hasShield = itemIds.includes(3);
-        itemsLoaded = true;
-        updateItemDisplay();
-      } catch (e) {
-        hasDoubleJump = false;
-        speedReduction = 1;
-        hasShield = false;
-        itemsLoaded = false;
-        updateItemDisplay();
-        setGameStatus(`Échec de synchronisation des objets : ${e.message || 'erreur inconnue'}. Tu peux quand même lancer la partie.`, 'error');
-      }
-    }
-
-    // Read player info from localStorage, then sync shop items from backend.
-    async function initUser() {
-      const stored = localStorage.getItem('dino_user');
-      if (!stored) {
-        window.location.href = 'login.html';
-        return;
-      }
-      const obj = JSON.parse(stored);
-      userId = obj.id;
-      coins = obj.coins || 0;
-      updateUserInfo();
-      await loadOwnedItems();
-    }
-
-    // Space key either starts the game or triggers jump / double jump.
-    document.addEventListener('keydown', e => {
-      if (e.code !== 'Space') return;
-      e.preventDefault();
-      if (!running) {
-        startGame();
-        return;
+      async function initUser() {
+          const stored = localStorage.getItem('dino_user');
+          if (!stored) { window.location.href = 'login.html'; return; }
+          const obj = JSON.parse(stored);
+          userId = obj.id;
+          coins = obj.coins || 0;
+          await loadOwnedItems(userId, api);
+          updateUI();
       }
 
-      const maxJumps = hasDoubleJump ? 2 : 1;
-      if (dinoY >= 150) {
-        velocity = jump;
-        jumpCount = 1;
-      } else if (jumpCount < maxJumps) {
-        velocity = jump;
-        jumpCount++;
-      }
-    });
-
-    // Paint background layers to make the canvas less empty.
-    function drawBackground() {
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, '#dff5ff');
-      gradient.addColorStop(0.68, '#f9fcff');
-      gradient.addColorStop(0.68, '#f3ede2');
-      gradient.addColorStop(1, '#f3ede2');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.beginPath();
-      ctx.arc(120, 48, 18, 0, Math.PI * 2);
-      ctx.arc(140, 42, 22, 0, Math.PI * 2);
-      ctx.arc(162, 48, 18, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = 'rgba(153, 169, 181, 0.25)';
-      ctx.beginPath();
-      ctx.moveTo(520, 180);
-      ctx.lineTo(610, 110);
-      ctx.lineTo(700, 180);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#7b8794';
-      ctx.fillRect(0, 180, canvas.width, 2);
-    }
-
-    // Reset per-run state and start the animation loop.
-    function startGame() {
-      if (!userId) {
-        window.location.href = 'login.html';
-        return;
-      }
-      if (running) return;
-
-      running = true;
-      dinoY = 150;
-      velocity = 0;
-      jumpCount = 0;
-      obstacles = [];
-      coinsOnTrack = [];
-      frame = 0;
-      score = 0;
-      runCoins = 0;
-      updateScoreDisplay();
-      updateRunCoinsDisplay();
-      updateRunDisplay('En cours');
-      updateItemDisplay();
-
-      if (itemsLoaded) {
-        setGameStatus('Partie en cours... Les objets achetés sont actifs.', 'info');
-      } else {
-        setGameStatus('Partie en cours... Les objets de la boutique ne sont pas synchronisés, la partie démarre en mode par défaut.', 'info');
+      // --- 游戏逻辑 ---
+      function startGame() {
+          if (running) return;
+          running = true;
+          score = 0;
+          frame = 0;
+          obstacles = [];
+          dinoY = 150;
+          velocity = 0;
+          document.getElementById('run-display').textContent = 'En cours';
+          loop();
       }
 
-      requestAnimationFrame(loop);
-    }
+      function loop() {
+          if (!running) return;
+          frame++;
+          score++;
 
-    // Main game loop: move player, spawn obstacles, detect collisions and render score.
-    function loop() {
-      if (!running) return;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      frame++;
-      score += 1;
-      updateScoreDisplay();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBackground();
+          // 绘制地板
+          ctx.fillStyle = '#7b8794';
+          ctx.fillRect(0, 180, canvas.width, 2);
 
-      velocity += gravity;
-      dinoY += velocity;
-      if (dinoY > 150) {
-        dinoY = 150;
-        velocity = 0;
-        jumpCount = 0;
-      }
+          // 恐龙物理
+          velocity += gravity;
+          dinoY += velocity;
+          if (dinoY > 150) { dinoY = 150; velocity = 0; jumpCount = 0; }
 
-      ctx.fillStyle = '#27ae60';
-      ctx.fillRect(50, dinoY, 30, 30);
+          ctx.fillStyle = '#27ae60';
+          ctx.fillRect(50, dinoY, 30, 30);
 
-      if (frame % 90 === 0) {
-        obstacles.push({ x: canvas.width, w: 20 + Math.random() * 20 });
-      }
+          // 障碍物逻辑
+          if (frame % 90 === 0) obstacles.push({ x: 800, w: 20 });
 
-      ctx.fillStyle = '#e74c3c';
-      for (const obs of obstacles) {
-        obs.x -= 4 + Math.min(6, score / 500) * speedReduction;
-        ctx.fillRect(obs.x, 160, obs.w, 20);
-      }
-      obstacles = obstacles.filter(o => o.x + o.w > 0);
+          const speed = (4 + Math.min(6, score / 500)) * gameState.speedReduction;
 
-      // Spawn coins on a regular interval.
-      if (frame % 120 === 0) {
-        const y = 110 + Math.random() * 40;
-        coinsOnTrack.push({ x: canvas.width + 10, y, r: 8 });
-      }
+          for (let i = obstacles.length - 1; i >= 0; i--) {
+              obstacles[i].x -= speed;
+              ctx.fillStyle = '#ff4d4f';
+              ctx.fillRect(obstacles[i].x, 160, obstacles[i].w, 20);
 
-      // Move + draw coins.
-      ctx.fillStyle = '#f39c12';
-      for (const c of coinsOnTrack) {
-        c.x -= 4 + Math.min(6, score / 500) * speedReduction;
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      coinsOnTrack = coinsOnTrack.filter(c => c.x + c.r > 0);
-
-      // Coin pickup detection (simple AABB vs circle bound).
-      for (let i = coinsOnTrack.length - 1; i >= 0; i--) {
-        const c = coinsOnTrack[i];
-        const dinoLeft = 50;
-        const dinoTop = dinoY;
-        const dinoRight = 50 + 30;
-        const dinoBottom = dinoY + 30;
-        const coinLeft = c.x - c.r;
-        const coinTop = c.y - c.r;
-        const coinRight = c.x + c.r;
-        const coinBottom = c.y + c.r;
-
-        const hit = dinoLeft < coinRight && dinoRight > coinLeft && dinoTop < coinBottom && dinoBottom > coinTop;
-        if (hit) {
-          coinsOnTrack.splice(i, 1);
-          runCoins += 1;
-          updateRunCoinsDisplay();
-        }
-      }
-
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        const obs = obstacles[i];
-        if (50 < obs.x + obs.w && 50 + 30 > obs.x && dinoY + 30 > 160) {
-          if (hasShield) {
-            hasShield = false;
-            obstacles.splice(i, 1);
-            updateItemDisplay();
-            setGameStatus('Le bouclier a bloqué une collision. Continue !', 'success');
-            continue;
+              // 碰撞检测
+              if (50 < obstacles[i].x + obstacles[i].w && 80 > obstacles[i].x && dinoY + 30 > 160) {
+                  if (consumeShield()) {
+                      obstacles.splice(i, 1);
+                      updateUI(); // 护盾消失后立刻更新文字
+                      continue;
+                  }
+                  gameOver();
+                  return;
+              }
           }
-          gameOver();
-          return;
-        }
+          obstacles = obstacles.filter(o => o.x + o.w > 0);
+
+          updateUI();
+          requestAnimationFrame(loop);
       }
 
-      ctx.fillStyle = '#1f2937';
-      ctx.fillText(`Score : ${score}`, 16, 24);
-      ctx.fillText(`Pièces : ${runCoins}`, 16, 44);
-      requestAnimationFrame(loop);
-    }
+      // --- 事件绑定 ---
+      window.addEventListener('keydown', e => {
+          if (e.code === 'Space') {
+              e.preventDefault();
+              if (!running) { startGame(); return; }
 
-    // Stop the run, upload score and refresh coins + owned item state.
-    async function gameOver() {
-      running = false;
-      updateRunDisplay('Terminé');
-      setGameStatus(`Partie terminée, score ${score}`, 'error');
-      try {
-        const res = await api('/api/scores', {
-          method: 'POST',
-          body: JSON.stringify({ userId, value: score, coinsCollected: runCoins })
-        });
-        coins = res.totalCoins;
-        localStorage.setItem('dino_user', JSON.stringify({ id: userId, coins }));
-        updateUserInfo();
-        setGameStatus(`Partie envoyée : +${res.newCoins} pièces${res.unlockedAchievementIds?.length ? `, succès débloqués : ${res.unlockedAchievementIds.join(', ')}` : ''}`, 'success');
-        await loadOwnedItems();
-      } catch (e) {
-        setGameStatus(e.message || 'Échec de l’envoi du score', 'error');
-      }
-    }
+              // 直接根据 gameState 判断是否能二段跳
+              const maxJumps = gameState.hasDoubleJump ? 2 : 1;
+              if (dinoY === 150 || jumpCount < maxJumps) {
+                  velocity = jump;
+                  jumpCount++;
+              }
+          }
+      });
 
-    // Page entry point.
-    (async function init() {
-      updateScoreDisplay();
-      updateRunCoinsDisplay();
-      updateRunDisplay('En attente');
-      await initUser();
-      if (itemsLoaded) {
-        setGameStatus('Synchronisation des objets terminée, tu peux commencer.', 'info');
+      async function gameOver() {
+          running = false;
+          document.getElementById('run-display').textContent = 'Terminé';
+          try {
+              const res = await api('/api/scores', {
+                  method: 'POST',
+                  body: JSON.stringify({ userId, value: score })
+              });
+              coins = res.totalCoins;
+              localStorage.setItem('dino_user', JSON.stringify({ id: userId, coins }));
+              // 重新同步道具（为了下一局把盾刷出来）
+              await loadOwnedItems(userId, api);
+              updateUI();
+          } catch (e) { console.error(e); }
       }
-    })();
+
+      document.getElementById('start-button').onclick = startGame;
+      document.getElementById('logout-btn').onclick = () => {
+          localStorage.removeItem('dino_user');
+          window.location.href = 'login.html';
+      };
+
+      initUser();
   </script>
-</body>
-</html>
