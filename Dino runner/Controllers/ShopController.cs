@@ -6,18 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dino_runner.Controllers;
 
-/// <summary>
-/// 商城控制器。
-/// 负责返回商品列表、查询用户已购道具，以及处理购买逻辑。
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class ShopController(AppDbContext context) : ControllerBase
 {
-    /// <summary>
-    /// 获取商城中的全部商品。
-    /// 前端 shop.html 使用该接口渲染商品卡片。
-    /// </summary>
     [HttpGet("items")]
     public async Task<ActionResult<IEnumerable<ShopItem>>> GetItems()
     {
@@ -25,10 +17,6 @@ public class ShopController(AppDbContext context) : ControllerBase
         return Ok(items);
     }
 
-    /// <summary>
-    /// 获取指定用户已购买的道具列表。
-    /// 前端会根据 shopItemId 判断该用户是否拥有某个功能型道具。
-    /// </summary>
     [HttpGet("user/{userId:int}")]
     public async Task<ActionResult<IEnumerable<object>>> GetUserItems(int userId)
     {
@@ -48,10 +36,6 @@ public class ShopController(AppDbContext context) : ControllerBase
         return Ok(items);
     }
 
-    /// <summary>
-    /// 购买一个商城道具。
-    /// 核心流程：校验用户 → 校验商品 → 检查是否已拥有 → 检查金币 → 扣费并写入购买记录。
-    /// </summary>
     [HttpPost("purchase")]
     public async Task<ActionResult<object>> Purchase([FromBody] PurchaseRequest request)
     {
@@ -69,7 +53,6 @@ public class ShopController(AppDbContext context) : ControllerBase
             return BadRequest(new { message = "Pièces insuffisantes" });
         }
 
-        // 扣除金币，并记录本次购买。
         user.Coins -= item.Price;
         context.UserItems.Add(new UserItem
         {
