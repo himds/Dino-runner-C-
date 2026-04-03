@@ -38,7 +38,7 @@ public class AchievementsController(AppDbContext context) : ControllerBase
     public async Task<ActionResult<IEnumerable<object>>> GetByUser(int userId)
     {
         var exists = await context.Users.AnyAsync(u => u.Id == userId);
-        if (!exists) return NotFound(new { message = "用户不存在" });
+        if (!exists) return NotFound(new { message = "Utilisateur introuvable" });
 
         var unlocked = await context.UserAchievements
             .Where(ua => ua.UserId == userId)

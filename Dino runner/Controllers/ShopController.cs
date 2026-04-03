@@ -33,7 +33,7 @@ public class ShopController(AppDbContext context) : ControllerBase
     public async Task<ActionResult<IEnumerable<object>>> GetUserItems(int userId)
     {
         var exists = await context.Users.AnyAsync(u => u.Id == userId);
-        if (!exists) return NotFound(new { message = "用户不存在" });
+        if (!exists) return NotFound(new { message = "Utilisateur introuvable" });
 
         var items = await context.UserItems
             .Where(ui => ui.UserId == userId)
@@ -56,17 +56,17 @@ public class ShopController(AppDbContext context) : ControllerBase
     public async Task<ActionResult<object>> Purchase([FromBody] PurchaseRequest request)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
-        if (user == null) return NotFound(new { message = "用户不存在" });
+        if (user == null) return NotFound(new { message = "Utilisateur introuvable" });
 
         var item = await context.ShopItems.FirstOrDefaultAsync(s => s.Id == request.ShopItemId);
-        if (item == null) return NotFound(new { message = "商品不存在" });
+        if (item == null) return NotFound(new { message = "Article introuvable" });
 
         var owned = await context.UserItems.AnyAsync(ui => ui.UserId == user.Id && ui.ShopItemId == item.Id);
-        if (owned) return Conflict(new { message = "已拥有该商品" });
+        if (owned) return Conflict(new { message = "Vous possédez déjà cet article" });
 
         if (user.Coins < item.Price)
         {
-            return BadRequest(new { message = "金币不足" });
+            return BadRequest(new { message = "Pièces insuffisantes" });
         }
 
         // 扣除金币，并记录本次购买。
@@ -81,6 +81,6 @@ public class ShopController(AppDbContext context) : ControllerBase
         await context.SaveChangesAsync();
 
         // 返回购买后的最新金币，方便前端立即刷新页面。
-        return Ok(new { message = "购买成功", user.Coins });
+        return Ok(new { message = "Achat réussi", user.Coins });
     }
 }

@@ -82,24 +82,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             new Achievement
             {
                 Id = 1,
-                Title = "Score 1000",
-                Description = "累积分数达到 1000",
+                Title = "1000 points",
+                Description = "Atteindre 1000 points en une partie",
                 Condition = "score>=1000"
             },
             new Achievement
             {
                 Id = 2,
-                Title = "Play 10 Games",
-                Description = "完成 10 局游戏",
+                Title = "10 parties",
+                Description = "Terminer 10 parties",
                 Condition = "games>=10"
             }
         );
 
         modelBuilder.Entity<ShopItem>().HasData(
-            new ShopItem { Id = 1, Name = "Double Jump", Description = "允许二段跳", Price = 200 },
-            new ShopItem { Id = 2, Name = "Slow Speed", Description = "减慢障碍速度", Price = 150 },
-            new ShopItem { Id = 3, Name = "Shield", Description = "一次碰撞免死", Price = 250 },
-            new ShopItem { Id = 4, Name = "Score Booster", Description = "按E触发：30秒内获得分数翻倍", Price = 300}
+            new ShopItem { Id = 1, Name = "Double saut", Description = "Permet le double saut", Price = 200 },
+            new ShopItem { Id = 2, Name = "Ralentissement", Description = "Ralentit la vitesse des obstacles", Price = 150 },
+            new ShopItem { Id = 3, Name = "Bouclier", Description = "Survit à une collision", Price = 250 },
+            new ShopItem { Id = 4, Name = "Boost de score", Description = "Touche E : score doublé pendant 30 secondes", Price = 300 }
         );
     }
 }

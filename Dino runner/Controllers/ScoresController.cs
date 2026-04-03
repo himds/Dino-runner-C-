@@ -25,7 +25,7 @@ public class ScoresController(AppDbContext context) : ControllerBase
             .Include(u => u.UserAchievements)
             .FirstOrDefaultAsync(u => u.Id == request.UserId);
 
-        if (user == null) return NotFound(new { message = "用户不存在" });
+        if (user == null) return NotFound(new { message = "Utilisateur introuvable" });
 
         var score = new Score
         {
@@ -88,7 +88,7 @@ public class ScoresController(AppDbContext context) : ControllerBase
     public async Task<ActionResult<IEnumerable<Score>>> ScoresByUser(int userId)
     {
         var exists = await context.Users.AnyAsync(u => u.Id == userId);
-        if (!exists) return NotFound(new { message = "用户不存在" });
+        if (!exists) return NotFound(new { message = "Utilisateur introuvable" });
 
         var scores = await context.Scores
             .Where(s => s.UserId == userId)

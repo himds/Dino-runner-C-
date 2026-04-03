@@ -24,7 +24,7 @@ public class UsersController(AppDbContext context) : ControllerBase
         var exists = await context.Users.AnyAsync(u => u.Username == request.Username);
         if (exists)
         {
-            return Conflict(new { message = "用户名已存在" });
+            return Conflict(new { message = "Ce nom d'utilisateur existe déjà" });
         }
 
         var user = new User
